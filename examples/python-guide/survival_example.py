@@ -44,7 +44,9 @@ gbm = lgb.train(
     ],
 )
 
-print(f"Validation negative partial log-likelihood: {evals_result['val']['survival_cox_nll'][gbm.best_iteration - 1]:.4f}")
+print(
+    f"Validation negative partial log-likelihood: {evals_result['val']['survival_cox_nll'][gbm.best_iteration - 1]:.4f}"
+)
 print(f"Validation concordance index: {evals_result['val']['concordance_index'][gbm.best_iteration - 1]:.4f}")
 
 # Predictions are log-hazard ratios (higher = more risk)

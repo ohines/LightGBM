@@ -449,7 +449,12 @@ def test_suvival_cox():
     lgb_train = lgb.Dataset(X_train, label=y_train)
     lgb_eval = lgb.Dataset(X_test, label=y_test, reference=lgb_train)
     evals_result = {}
-    params = {"objective": "survival", "metric": ["survival_cox_nll", "concordance_index"], "verbose": -1, "num_leaves": 8}
+    params = {
+        "objective": "survival",
+        "metric": ["survival_cox_nll", "concordance_index"],
+        "verbose": -1,
+        "num_leaves": 8,
+    }
     lgb.train(
         params,
         lgb_train,
