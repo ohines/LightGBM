@@ -34,6 +34,22 @@ def load_linnerud(**kwargs):
     return sklearn.datasets.load_linnerud(**kwargs)
 
 
+@lru_cache(maxsize=None)
+def load_survival():
+    """Generate synthetic survival data with signed-time label convention."""
+    n = 500
+    p = 5
+    censoring_rate = 0.3
+    rng = np.random.RandomState(seed=42)
+    X = rng.randn(n, p)
+    log_hazard = X[:, 0] + 0.5 * X[:, 1]
+    times = rng.exponential(np.exp(-log_hazard))
+    censor_times = rng.exponential(np.median(times) / censoring_rate, n)
+    observed = times <= censor_times
+    y = np.where(observed, np.minimum(times, censor_times), -censor_times)
+    return X.astype(np.float64), y.astype(np.float64)
+
+
 def make_ranking(
     *, n_samples=100, n_features=20, n_informative=5, gmax=2, group=None, random_gs=False, avg_gs=10, random_state=0
 ):
