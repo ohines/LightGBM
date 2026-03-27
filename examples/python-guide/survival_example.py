@@ -1,7 +1,7 @@
 # coding: utf-8
 """Cox proportional hazards survival analysis with LightGBM.
 
-Demonstrates the built-in ``cox`` objective for right-censored survival data.
+Uses the built-in ``cox`` objective for right-censored survival data.
 Labels encode censoring via sign: +t means an event at time t, -t means
 censored at time t.
 """
@@ -14,19 +14,14 @@ rng = np.random.RandomState(42)
 n, p = 2000, 10
 X = rng.randn(n, p)
 
-# True log-hazard ratio: f(x) = x0 + 0.5*x1 - 0.3*x2
-log_hazard = X[:, 0] + 0.5 * X[:, 1] - 0.3 * X[:, 2]
+# Survival times drawn from an exponential distribution
+times = rng.exponential(scale=100.0, size=n)
 
-# Exponential survival times (higher hazard -> shorter time)
-event_times = rng.exponential(np.exp(-log_hazard))
-
-# Random censoring (~30% censored)
-censor_times = rng.exponential(np.median(event_times) / 0.3, n)
-observed = event_times <= censor_times
-times = np.minimum(event_times, censor_times)
+# Event indicators: 1 = event, 0 = censored (~30% censored)
+event = rng.binomial(1, p=0.7, size=n)
 
 # Encode labels: positive = event, negative = censored
-y = np.where(observed, times, -times)
+y = np.where(event == 1, times, -times)
 
 n_train = int(0.8 * n)
 X_train, X_val = X[:n_train], X[n_train:]
@@ -56,7 +51,7 @@ gbm = lgb.train(
     ],
 )
 
-print(f"Validation cox_nll:          {evals_result['val']['cox_nll'][gbm.best_iteration - 1]:.4f}")
+print(f"Validation cox_nll: {evals_result['val']['cox_nll'][gbm.best_iteration - 1]:.4f}")
 print(f"Validation concordance index: {evals_result['val']['concordance_index'][gbm.best_iteration - 1]:.4f}")
 
 # Predictions are log-hazard ratios (higher = more risk)
