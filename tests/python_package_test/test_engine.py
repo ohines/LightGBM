@@ -4867,3 +4867,100 @@ def test_equal_predict_from_row_major_and_col_major_data():
     preds_col = bst.predict(X_col)
 
     np.testing.assert_allclose(preds_row, preds_col)
+
+
+# =====================================================================
+# Cox survival objective
+# =====================================================================
+
+
+def _make_survival_data(n=500, p=5, censoring_rate=0.3, seed=42):
+    """Generate synthetic survival data with signed-time label convention."""
+    rng = np.random.RandomState(seed)
+    X = rng.randn(n, p)
+    log_hazard = X[:, 0] + 0.5 * X[:, 1]
+    times = rng.exponential(np.exp(-log_hazard))
+    censor_times = rng.exponential(np.median(times) / censoring_rate, n)
+    observed = times <= censor_times
+    y = np.where(observed, np.minimum(times, censor_times), -censor_times)
+    return X.astype(np.float64), y.astype(np.float64)
+
+
+def test_cox_train_and_predict():
+    X, y = _make_survival_data()
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    params = {"objective": "cox", "verbose": -1, "num_leaves": 16, "learning_rate": 0.1}
+    ds = lgb.Dataset(X_train, label=y_train)
+    bst = lgb.train(params, ds, num_boost_round=50)
+    preds = bst.predict(X_test)
+    assert preds.shape == (len(X_test),)
+    assert np.all(np.isfinite(preds))
+
+
+def test_cox_objective_aliases():
+    X, y = _make_survival_data(n=200)
+    ds = lgb.Dataset(X, label=y)
+    for alias in ["cox", "cox_ph", "survival_cox"]:
+        params = {"objective": alias, "verbose": -1, "num_leaves": 4}
+        bst = lgb.train(params, ds, num_boost_round=5)
+        assert bst.predict(X).shape == (len(X),)
+
+
+def test_cox_metric_eval():
+    X, y = _make_survival_data(n=400)
+    X_tr, X_val, y_tr, y_val = train_test_split(X, y, test_size=0.25, random_state=0)
+    ds_tr = lgb.Dataset(X_tr, label=y_tr)
+    ds_val = lgb.Dataset(X_val, label=y_val, reference=ds_tr)
+    evals_result = {}
+    params = {"objective": "cox", "metric": ["cox_nll", "concordance_index"], "verbose": -1, "num_leaves": 8}
+    lgb.train(
+        params,
+        ds_tr,
+        num_boost_round=30,
+        valid_sets=[ds_val],
+        valid_names=["val"],
+        callbacks=[lgb.record_evaluation(evals_result)],
+    )
+    assert "cox_nll" in evals_result["val"]
+    assert "concordance_index" in evals_result["val"]
+    assert len(evals_result["val"]["cox_nll"]) == 30
+    # concordance index should be above random (0.5) for this easy problem
+    assert evals_result["val"]["concordance_index"][-1] > 0.55
+
+
+def test_cox_save_load(tmp_path):
+    X, y = _make_survival_data()
+    ds = lgb.Dataset(X, label=y)
+    params = {"objective": "cox", "verbose": -1, "num_leaves": 8}
+    bst = lgb.train(params, ds, num_boost_round=20)
+    preds_orig = bst.predict(X)
+
+    # save and reload from text file
+    model_path = str(tmp_path / "cox_model.txt")
+    bst.save_model(model_path)
+    bst_loaded = lgb.Booster(model_file=model_path)
+    preds_loaded = bst_loaded.predict(X)
+    np.testing.assert_allclose(preds_orig, preds_loaded)
+
+    # pickle round-trip
+    bst_pickled = pickle.loads(pickle.dumps(bst))
+    preds_pickled = bst_pickled.predict(X)
+    np.testing.assert_allclose(preds_orig, preds_pickled)
+
+
+def test_cox_default_metric():
+    """When metric is not specified, cox objective should default to cox_nll."""
+    X, y = _make_survival_data(n=200)
+    ds_tr = lgb.Dataset(X[:150], label=y[:150])
+    ds_val = lgb.Dataset(X[150:], label=y[150:], reference=ds_tr)
+    evals_result = {}
+    params = {"objective": "cox", "verbose": -1, "num_leaves": 4}
+    lgb.train(
+        params,
+        ds_tr,
+        num_boost_round=5,
+        valid_sets=[ds_val],
+        valid_names=["val"],
+        callbacks=[lgb.record_evaluation(evals_result)],
+    )
+    assert "cox_nll" in evals_result["val"]
