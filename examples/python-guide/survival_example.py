@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 import lightgbm as lgb
 
 # Load FLCHAIN dataset (serum free light chain and mortality)
-data = fetch_openml("flchain", version=1, as_frame=True, parser="auto")
+data = fetch_openml("flchain", version=1, as_frame=True)
 df = data.data.copy()
 time = data.target.values
 event = df.pop("status").values
