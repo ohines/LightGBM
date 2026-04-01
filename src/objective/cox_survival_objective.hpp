@@ -115,8 +115,6 @@ class CoxPHLoss : public ObjectiveFunction {
     return std::string("survival_cox");
   }
 
-  bool NeedAccuratePrediction() const override { return false; }
-
  private:
   /*! \brief Number of data */
   data_size_t num_data_;
