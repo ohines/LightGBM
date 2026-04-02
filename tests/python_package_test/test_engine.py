@@ -454,6 +454,10 @@ def test_suvival_cox():
         "metric": ["survival_cox_nll", "concordance_index"],
         "verbose": -1,
         "num_leaves": 8,
+        "seed": 708,
+        "num_threads": 1,
+        "deterministic": True,
+        "force_row_wise": True,
     }
     lgb.train(
         params,
