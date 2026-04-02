@@ -37,8 +37,8 @@ from .utils import (
     load_breast_cancer,
     load_digits,
     load_iris,
-    load_survival,
     logistic_sigmoid,
+    make_survival,
     make_synthetic_regression,
     mse_obj,
     np_assert_array_equal,
@@ -444,7 +444,7 @@ def test_categorical_non_zero_inputs(use_quantized_grad):
 
 
 def test_suvival_cox():
-    X, y = load_survival()
+    X, y = make_survival()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=0)
     lgb_train = lgb.Dataset(X_train, label=y_train)
     lgb_eval = lgb.Dataset(X_test, label=y_test, reference=lgb_train)
