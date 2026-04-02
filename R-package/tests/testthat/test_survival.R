@@ -5,8 +5,9 @@
     times <- rexp(n_samples, rate = exp(log_hazard))
     censoring_rate <- 0.3
     censor_times <- rexp(n_samples, rate = censoring_rate / median(times))
-    observed <- times <= censor_times
-    y <- ifelse(observed, times, -censor_times)
+    y <- pmin(times, censor_times)
+    censored <- censor_times < times
+    y[censored] <- -y[censored]
     list(X = X, y = y)
 }
 
@@ -67,8 +68,8 @@ test_that("survival_cox with lgb.train() works as expected", {
     expect_true(losses[1L] > losses[10L])
 
     # check that concordance index and loss improves for at least half the rounds
-    loss_improvements <- sum(diff(losses) < 0)
-    ci_improvements <- sum(diff(c_indices) > 0)
+    loss_improvements <- sum(diff(losses) < 0L)
+    ci_improvements <- sum(diff(c_indices) > 0L)
     expect_true(loss_improvements >= 5L)
     expect_true(ci_improvements >= 5L)
 })
