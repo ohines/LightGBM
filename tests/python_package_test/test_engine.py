@@ -462,7 +462,7 @@ def test_suvival_cox():
     lgb.train(
         params,
         lgb_train,
-        num_boost_round=50,
+        num_boost_round=10,
         valid_sets=[lgb_eval],
         valid_names=["val"],
         callbacks=[lgb.record_evaluation(evals_result)],
