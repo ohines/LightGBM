@@ -467,8 +467,7 @@ def test_suvival_cox():
         valid_names=["val"],
         callbacks=[lgb.record_evaluation(evals_result)],
     )
-    assert "survival_cox_nll" in evals_result["val"]
-    assert "concordance_index" in evals_result["val"]
+    assert set(evals_result["val"].keys()) == {"survival_cox_nll", "concordance_index"}
     assert len(evals_result["val"]["survival_cox_nll"]) == 50
     # concordance index should be above random (0.5) for this easy problem
     assert evals_result["val"]["concordance_index"][-1] > 0.55
